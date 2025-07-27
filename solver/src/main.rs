@@ -164,7 +164,8 @@ impl<'a> Solver<'a> {
             return self.graph.nodes.get(i).unwrap().connections.contains(j);
         }
         // The only way to make a square is if they share two connections
-        count == 2
+        // and aren't connected
+        count == 2 && !self.graph.nodes.get(i).unwrap().connections.contains(j)
     }
 
     fn get_cost(&mut self) -> () {
