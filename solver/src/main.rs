@@ -1,6 +1,8 @@
 use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::rc::Rc;
+use std::sync::Arc;
 
 const NODES: usize = 9;
 const EDGES: usize = 4;
@@ -112,24 +114,28 @@ impl Graph {
     }
 }
 
-struct Solver {
-    graph: Graph,
-    soln_score: f64,
-    best_ever_score: f64,
+struct Solver<'a> {
+    graph: &'a mut Graph,
+    soln_cost: u32,
+    best_ever_cost: u32,
     temperature: f64,
     alpha: f64,
+    iterations: u64,
 }
 
-impl Solver {
-    fn new(graph: Graph, temperature: f64, alpha: f64) -> Self {
+impl<'a> Solver<'a> {
+    fn new(graph: &'a mut Graph, temperature: f64, alpha: f64, iterations: u64) -> Self {
         Solver {
             graph: graph,
-            soln_score: f64::MIN,
-            best_ever_score: f64::MIN,
+            soln_cost: 1000,
+            best_ever_cost: 1000,
             temperature: temperature,
             alpha: alpha,
+            iterations: iterations,
         }
     }
+
+    fn get_cost(&mut self) -> () {}
 }
 
 fn main() {
@@ -139,6 +145,8 @@ fn main() {
     }
 
     graph.initialise_soln();
+
+    let solver = Solver::new(&mut graph, 10.0, 0.9999, 1000);
 
     println!("{:?}", graph.nodes);
     // let mut rng = rand::rng();
