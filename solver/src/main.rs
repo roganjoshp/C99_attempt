@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rand::prelude::*;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::collections::HashSet;
 // use std::rc::Rc;
 // use std::sync::Arc;
@@ -142,24 +142,35 @@ impl<'a> Solver<'a> {
     /// Either the nodes are connected and share only a single
     /// connection, or they are not connected and share two node
     /// connections.
-    fn neighbour_count_fits(&self, i: &usize, j: &usize) -> bool {
+    fn neighbour_count_fits(&self, i: usize, j: usize) -> bool {
         // First count the mutual connections
-        let count = self.graph.nodes[*i]
+        let count = self.graph.nodes[i]
             .connections
-            .intersection(&self.graph.nodes[*j].connections)
+            .intersection(&self.graph.nodes[j].connections)
             .count();
         if count == 1 {
             // We need to be sure here that they are actually connected
             // themselves to create the triangle
-            return self.graph.nodes[*i].connections.contains(j);
+            return self.graph.nodes[i].connections.contains(&j);
         }
         // The only way to make a square is if they share two connections
         // and aren't connected
-        count == 2 && !self.graph.nodes[*i].connections.contains(j)
+        count == 2 && !self.graph.nodes[i].connections.contains(&j)
     }
 
-    fn get_cost(&mut self) -> () {
-        // self.graph.node_pairs.iter().map(|pair|)
+    fn get_cost(&mut self) -> usize {
+        // This is basically backwards from what I'm used to but
+        // here I want to subtract from a static base cost for every
+        // time I find a structure that I want in the graph.
+        // Yam knows what weights to use to make SA be effective in
+        // jumping out of local minima
+        self.graph
+            .node_pairs
+            .iter()
+            .map(|pair| self.neighbour_count_fits(pair[0], pair[1]))
+            .filter(|&s| s == true)
+            .collect::<Vec<_>>()
+            .len()
     }
 }
 
@@ -170,8 +181,9 @@ fn main() {
     }
 
     graph.initialise_soln();
-
-    let solver = Solver::new(&mut graph, 10.0, 0.9999, 1000);
-
     println!("{:?}", graph.nodes);
+
+    let mut solver = Solver::new(&mut graph, 10.0, 0.9999, 1000);
+
+    println!("{:?}", solver.get_cost());
 }
