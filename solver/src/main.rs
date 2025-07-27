@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -9,20 +10,24 @@ const EDGES: usize = 4;
 
 #[derive(Debug, Eq, PartialEq)]
 struct Node {
-    id: u32,
-    connections: HashSet<u32>,
+    id: usize,
+    connections: HashSet<usize>,
 }
 
 impl Node {
-    fn new(id: u32) -> Self {
+    fn new(id: usize) -> Self {
         Node {
             id: id,
-            connections: HashSet::<u32>::new(),
+            connections: HashSet::<usize>::new(),
         }
     }
 
-    fn add_connection(&mut self, node_id: u32) -> () {
+    fn add_connection(&mut self, node_id: usize) -> () {
         self.connections.insert(node_id);
+    }
+
+    fn remove_connection(&mut self, node_id: usize) -> () {
+        self.connections.remove(&node_id);
     }
 
     fn reset(&mut self) -> () {
@@ -32,9 +37,10 @@ impl Node {
 
 #[derive(Debug)]
 struct Graph {
-    nodes: HashMap<u32, Node>,
-    node_ids: Vec<u32>,
-    edges: Vec<(u32, u32)>,
+    nodes: HashMap<usize, Node>,
+    node_ids: Vec<usize>,
+    edges: Vec<(usize, usize)>,
+    node_pairs: Vec<Vec<usize>>,
 }
 
 impl Graph {
@@ -43,6 +49,7 @@ impl Graph {
             nodes: HashMap::new(),
             node_ids: Vec::with_capacity(NODES),
             edges: Vec::new(),
+            node_pairs: (0..NODES).combinations(2).collect(),
         }
     }
 
@@ -61,7 +68,7 @@ impl Graph {
         let mut rng = rand::rng();
 
         for this_node_id in &self.node_ids {
-            let mut pair_nodes: Vec<&u32> = self
+            let mut pair_nodes: Vec<&usize> = self
                 .node_ids
                 .iter()
                 .filter(|&n| n != this_node_id)
@@ -116,8 +123,8 @@ impl Graph {
 
 struct Solver<'a> {
     graph: &'a mut Graph,
-    soln_cost: u32,
-    best_ever_cost: u32,
+    soln_cost: usize,
+    best_ever_cost: usize,
     temperature: f64,
     alpha: f64,
     iterations: u64,
@@ -141,7 +148,7 @@ impl<'a> Solver<'a> {
 fn main() {
     let mut graph = Graph::new();
     for x in 0..NODES {
-        graph.add_node(Node::new(x as u32));
+        graph.add_node(Node::new(x));
     }
 
     graph.initialise_soln();
@@ -149,7 +156,4 @@ fn main() {
     let solver = Solver::new(&mut graph, 10.0, 0.9999, 1000);
 
     println!("{:?}", graph.nodes);
-    // let mut rng = rand::rng();
-    // let random_number: i32 = rng.random_range(2..4);
-    // println!("Random number: {}", random_number);
 }
