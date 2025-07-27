@@ -37,7 +37,7 @@ impl Node {
 
 #[derive(Debug)]
 struct Graph {
-    nodes: HashMap<usize, Node>,
+    nodes: Vec<Node>,
     node_ids: Vec<usize>,
     edges: Vec<(usize, usize)>,
     node_pairs: Vec<Vec<usize>>,
@@ -46,7 +46,7 @@ struct Graph {
 impl Graph {
     fn new() -> Self {
         Graph {
-            nodes: HashMap::new(),
+            nodes: Vec::new(),
             node_ids: Vec::with_capacity(NODES),
             edges: Vec::new(),
             node_pairs: (0..NODES).combinations(2).collect(),
@@ -77,19 +77,13 @@ impl Graph {
             pair_nodes.shuffle(&mut rng);
 
             for &pair_node_id in &pair_nodes {
-                if self.nodes.get(&pair_node_id).unwrap().connections.len() >= 4
-                    || self.nodes.get(&this_node_id).unwrap().connections.len() >= 4
+                if self.nodes[*pair_node_id].connections.len() >= 4
+                    || self.nodes[*this_node_id].connections.len() >= 4
                 {
                     continue;
                 }
-                self.nodes
-                    .get_mut(&pair_node_id)
-                    .unwrap()
-                    .add_connection(*this_node_id);
-                self.nodes
-                    .get_mut(this_node_id)
-                    .unwrap()
-                    .add_connection(*pair_node_id);
+                self.nodes[*pair_node_id].add_connection(*this_node_id);
+                self.nodes[*this_node_id].add_connection(*pair_node_id);
                 self.edges.push((*this_node_id, *pair_node_id));
             }
         }
@@ -98,9 +92,9 @@ impl Graph {
     /// Assert that the solution has the predicated number of
     /// edges for each node
     fn check_num_edges(&self) -> bool {
-        for (_, node) in self.nodes.iter() {
+        for node in self.nodes.iter() {
             if node.connections.len() != EDGES {
-                println!("Failed initialisation");
+                println!("Failed");
                 return false;
             }
         }
@@ -115,7 +109,7 @@ impl Graph {
                 break;
             }
             for node_id in self.node_ids.iter() {
-                self.nodes.get_mut(node_id).unwrap().reset();
+                self.nodes[*node_id].reset();
             }
         }
     }
@@ -150,22 +144,18 @@ impl<'a> Solver<'a> {
     /// connections.
     fn neighbour_count_fits(&self, i: &usize, j: &usize) -> bool {
         // First count the mutual connections
-        let count = self
-            .graph
-            .nodes
-            .get(i)
-            .unwrap()
+        let count = self.graph.nodes[*i]
             .connections
-            .intersection(&self.graph.nodes.get(j).unwrap().connections)
+            .intersection(&self.graph.nodes[*j].connections)
             .count();
         if count == 1 {
             // We need to be sure here that they are actually connected
             // themselves to create the triangle
-            return self.graph.nodes.get(i).unwrap().connections.contains(j);
+            return self.graph.nodes[*i].connections.contains(j);
         }
         // The only way to make a square is if they share two connections
         // and aren't connected
-        count == 2 && !self.graph.nodes.get(i).unwrap().connections.contains(j)
+        count == 2 && !self.graph.nodes[*i].connections.contains(j)
     }
 
     fn get_cost(&mut self) -> () {
