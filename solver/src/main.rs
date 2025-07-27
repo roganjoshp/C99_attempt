@@ -27,6 +27,9 @@ impl Graph {
         self.node_ids.push(node_id);
     }
 
+    /// Attempt to generate a randomised initial solution
+    /// that satisfies the number of nodes, each with the
+    /// specified number of edges
     fn soln_initialiser(&mut self) -> () {
         // TODO: This is broken once you get to 99 nodes. It's just a POC.
         // Need to think about how to initialise this better
@@ -55,10 +58,13 @@ impl Graph {
                     .get_mut(this_node_id)
                     .unwrap()
                     .add_connection(*pair_node_id);
+                self.edges.push((*this_node_id, *pair_node_id));
             }
         }
     }
 
+    /// Assert that the solution has the predicated number of
+    /// edges for each node
     fn check_num_edges(&self) -> bool {
         for (_, node) in self.nodes.iter() {
             if node.connections.len() != EDGES {
@@ -69,6 +75,7 @@ impl Graph {
         true
     }
 
+    /// Generate the initial solution
     fn initialise_soln(&mut self) -> () {
         loop {
             self.soln_initialiser();
