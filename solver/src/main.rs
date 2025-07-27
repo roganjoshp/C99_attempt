@@ -175,15 +175,20 @@ impl<'a> Solver<'a> {
 
     fn do_swap(&mut self) -> () {
         let mut rng = rand::rng();
+        // Probably easier/cheaper just to choose two random numbers
+        // here in the range of node IDs and reject if they're equal
+        // but... whatever for now
         let pair: Vec<usize> = self
             .graph
             .node_ids
             .choose_multiple(&mut rng, 2)
             .cloned()
             .collect();
-        let swap_candidates = self.graph.nodes[pair[0]]
+        let mut swap_candidates: Vec<&usize> = self.graph.nodes[pair[0]]
             .connections
-            .difference(&self.graph.nodes[pair[1]].connections);
+            .difference(&self.graph.nodes[pair[1]].connections)
+            .collect();
+        let node = swap_candidates.choose(&mut rng).unwrap();
     }
 }
 
