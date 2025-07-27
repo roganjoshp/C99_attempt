@@ -24,7 +24,7 @@ impl Node {
     }
 
     fn reset(&mut self) -> () {
-        self.connections = HashSet::new();
+        self.connections.clear();
     }
 }
 
