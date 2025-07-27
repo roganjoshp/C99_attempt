@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 const NODES: u32 = 9;
+const EDGES: usize = 4;
 
 #[derive(Debug)]
 struct Graph {
@@ -26,7 +27,9 @@ impl Graph {
         self.node_ids.push(node_id);
     }
 
-    fn initialse(&mut self) -> () {
+    fn soln_initialiser(&mut self) -> () {
+        // TODO: This is broken once you get to 99 nodes. It's just a POC.
+        // Need to think about how to initialise this better
         let mut rng = rand::rng();
 
         for this_node_id in &self.node_ids {
@@ -37,7 +40,6 @@ impl Graph {
                 .collect();
 
             pair_nodes.shuffle(&mut rng);
-            println!("{:?}", pair_nodes);
 
             for &pair_node_id in &pair_nodes {
                 if self.nodes.get(&pair_node_id).unwrap().connections.len() >= 4
@@ -45,7 +47,6 @@ impl Graph {
                 {
                     continue;
                 }
-
                 self.nodes
                     .get_mut(&pair_node_id)
                     .unwrap()
@@ -56,7 +57,28 @@ impl Graph {
                     .add_connection(*pair_node_id);
             }
         }
-        println!("{:?}", self.nodes);
+    }
+
+    fn check_num_edges(&self) -> bool {
+        for (_, node) in self.nodes.iter() {
+            if node.connections.len() != EDGES {
+                println!("Failed");
+                return false;
+            }
+        }
+        true
+    }
+
+    fn initialise_soln(&mut self) -> () {
+        loop {
+            self.soln_initialiser();
+            if self.check_num_edges() {
+                break;
+            }
+            for node_id in self.node_ids.iter() {
+                self.nodes.get_mut(node_id).unwrap().reset();
+            }
+        }
     }
 }
 
@@ -77,6 +99,10 @@ impl Node {
     fn add_connection(&mut self, node_id: u32) -> () {
         self.connections.insert(node_id);
     }
+
+    fn reset(&mut self) -> () {
+        self.connections = HashSet::new();
+    }
 }
 
 fn main() {
@@ -85,9 +111,9 @@ fn main() {
         graph.add_node(Node::new(x));
     }
 
-    graph.initialse();
+    graph.initialise_soln();
 
-    // println!("{:?}", graph);
+    println!("{:?}", graph.nodes);
     // let mut rng = rand::rng();
     // let random_number: i32 = rng.random_range(2..4);
     // println!("Random number: {}", random_number);
