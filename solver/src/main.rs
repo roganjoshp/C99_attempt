@@ -1,10 +1,7 @@
 use itertools::Itertools;
 use rand::prelude::*;
 use rayon::prelude::*;
-// use std::collections::HashMap;
 use std::collections::HashSet;
-// use std::rc::Rc;
-// use std::sync::Arc;
 
 const NODES: usize = 9;
 const EDGES: usize = 4;
@@ -130,9 +127,9 @@ impl<'a> Solver<'a> {
     fn new(graph: &'a mut Graph, temperature: f64, alpha: f64, iterations: u64) -> Self {
         Solver {
             graph: graph,
-            base_cost: 1000,
-            soln_cost: 1000,
-            best_ever_cost: 1000,
+            base_cost: 10000,
+            soln_cost: 10000,
+            best_ever_cost: 10000,
             temperature: temperature,
             alpha: alpha,
             iterations: iterations,
@@ -172,9 +169,21 @@ impl<'a> Solver<'a> {
                 .par_iter()
                 .map(|pair| self.neighbour_count_fits(pair[0], pair[1]))
                 .filter(|&s| s == true)
-                .collect::<Vec<_>>()
-                .len()
+                .count()
                 * 10
+    }
+
+    fn do_swap(&mut self) -> () {
+        let mut rng = rand::rng();
+        let pair: Vec<usize> = self
+            .graph
+            .node_ids
+            .choose_multiple(&mut rng, 2)
+            .cloned()
+            .collect();
+        let swap_candidates = self.graph.nodes[pair[0]]
+            .connections
+            .difference(&self.graph.nodes[pair[1]].connections);
     }
 }
 
