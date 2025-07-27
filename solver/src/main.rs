@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use rand::prelude::*;
+use rayon::prelude::*;
 // use std::collections::HashMap;
 use std::collections::HashSet;
 // use std::rc::Rc;
@@ -117,9 +118,9 @@ impl Graph {
 
 struct Solver<'a> {
     graph: &'a mut Graph,
-    base_cost: u32,
-    soln_cost: u32,
-    best_ever_cost: u32,
+    base_cost: usize,
+    soln_cost: usize,
+    best_ever_cost: usize,
     temperature: f64,
     alpha: f64,
     iterations: u64,
@@ -164,13 +165,16 @@ impl<'a> Solver<'a> {
         // time I find a structure that I want in the graph.
         // Yam knows what weights to use to make SA be effective in
         // jumping out of local minima
-        self.graph
-            .node_pairs
-            .iter()
-            .map(|pair| self.neighbour_count_fits(pair[0], pair[1]))
-            .filter(|&s| s == true)
-            .collect::<Vec<_>>()
-            .len()
+        self.base_cost
+            - self
+                .graph
+                .node_pairs
+                .par_iter()
+                .map(|pair| self.neighbour_count_fits(pair[0], pair[1]))
+                .filter(|&s| s == true)
+                .collect::<Vec<_>>()
+                .len()
+                * 10
     }
 }
 
