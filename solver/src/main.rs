@@ -2,8 +2,8 @@ use itertools::Itertools;
 use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::rc::Rc;
-use std::sync::Arc;
+// use std::rc::Rc;
+// use std::sync::Arc;
 
 const NODES: usize = 9;
 const EDGES: usize = 4;
@@ -123,8 +123,9 @@ impl Graph {
 
 struct Solver<'a> {
     graph: &'a mut Graph,
-    soln_cost: usize,
-    best_ever_cost: usize,
+    base_cost: u32,
+    soln_cost: u32,
+    best_ever_cost: u32,
     temperature: f64,
     alpha: f64,
     iterations: u64,
@@ -134,6 +135,7 @@ impl<'a> Solver<'a> {
     fn new(graph: &'a mut Graph, temperature: f64, alpha: f64, iterations: u64) -> Self {
         Solver {
             graph: graph,
+            base_cost: 1000,
             soln_cost: 1000,
             best_ever_cost: 1000,
             temperature: temperature,
@@ -142,7 +144,32 @@ impl<'a> Solver<'a> {
         }
     }
 
-    fn get_cost(&mut self) -> () {}
+    /// Check whether a node pair has 1 or 2 common connections
+    /// Either the nodes are connected and share only a single
+    /// connection, or they are not connected and share two node
+    /// connections.
+    fn neighbour_count_fits(&self, i: &usize, j: &usize) -> bool {
+        // First count the mutual connections
+        let count = self
+            .graph
+            .nodes
+            .get(i)
+            .unwrap()
+            .connections
+            .intersection(&self.graph.nodes.get(j).unwrap().connections)
+            .count();
+        if count == 1 {
+            // We need to be sure here that they are actually connected
+            // themselves to create the triangle
+            return self.graph.nodes.get(i).unwrap().connections.contains(j);
+        }
+        // The only way to make a square is if they share two connections
+        count == 2
+    }
+
+    fn get_cost(&mut self) -> () {
+        // self.graph.node_pairs.iter().map(|pair|)
+    }
 }
 
 fn main() {
