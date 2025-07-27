@@ -2,8 +2,31 @@ use rand::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-const NODES: u32 = 9;
+const NODES: usize = 9;
 const EDGES: usize = 4;
+
+#[derive(Debug, Eq, PartialEq)]
+struct Node {
+    id: u32,
+    connections: HashSet<u32>,
+}
+
+impl Node {
+    fn new(id: u32) -> Self {
+        Node {
+            id: id,
+            connections: HashSet::<u32>::new(),
+        }
+    }
+
+    fn add_connection(&mut self, node_id: u32) -> () {
+        self.connections.insert(node_id);
+    }
+
+    fn reset(&mut self) -> () {
+        self.connections = HashSet::new();
+    }
+}
 
 #[derive(Debug)]
 struct Graph {
@@ -16,7 +39,7 @@ impl Graph {
     fn new() -> Self {
         Graph {
             nodes: HashMap::new(),
-            node_ids: Vec::new(),
+            node_ids: Vec::with_capacity(NODES),
             edges: Vec::new(),
         }
     }
@@ -68,7 +91,7 @@ impl Graph {
     fn check_num_edges(&self) -> bool {
         for (_, node) in self.nodes.iter() {
             if node.connections.len() != EDGES {
-                println!("Failed");
+                println!("Failed initialisation");
                 return false;
             }
         }
@@ -89,33 +112,30 @@ impl Graph {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-struct Node {
-    id: u32,
-    connections: HashSet<u32>,
+struct Solver {
+    graph: Graph,
+    soln_score: f64,
+    best_ever_score: f64,
+    temperature: f64,
+    alpha: f64,
 }
 
-impl Node {
-    fn new(id: u32) -> Self {
-        Node {
-            id: id,
-            connections: HashSet::<u32>::new(),
+impl Solver {
+    fn new(graph: Graph, temperature: f64, alpha: f64) -> Self {
+        Solver {
+            graph: graph,
+            soln_score: f64::MIN,
+            best_ever_score: f64::MIN,
+            temperature: temperature,
+            alpha: alpha,
         }
-    }
-
-    fn add_connection(&mut self, node_id: u32) -> () {
-        self.connections.insert(node_id);
-    }
-
-    fn reset(&mut self) -> () {
-        self.connections = HashSet::new();
     }
 }
 
 fn main() {
     let mut graph = Graph::new();
     for x in 0..NODES {
-        graph.add_node(Node::new(x));
+        graph.add_node(Node::new(x as u32));
     }
 
     graph.initialise_soln();
