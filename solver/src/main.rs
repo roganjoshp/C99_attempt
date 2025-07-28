@@ -6,7 +6,7 @@ use std::collections::HashSet;
 const NODES: usize = 9;
 const EDGES: usize = 4;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 struct Node {
     id: usize,
     connections: HashSet<usize>,
@@ -33,7 +33,7 @@ impl Node {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Graph {
     nodes: Vec<Node>,
     node_ids: Vec<usize>,
@@ -118,6 +118,7 @@ struct Solver<'a> {
     base_cost: usize,
     soln_cost: usize,
     best_ever_cost: usize,
+    best_ever_solution: Graph,
     temperature: f64,
     alpha: f64,
     iterations: u64,
@@ -130,6 +131,7 @@ impl<'a> Solver<'a> {
             base_cost: 10000,
             soln_cost: 10000,
             best_ever_cost: 10000,
+            best_ever_solution: Graph::default(),
             temperature: temperature,
             alpha: alpha,
             iterations: iterations,
@@ -173,22 +175,60 @@ impl<'a> Solver<'a> {
                 * 10
     }
 
-    fn do_swap(&mut self) -> () {
+    fn get_swaps(&mut self) -> Option<(usize, usize, usize, usize)> {
         let mut rng = rand::rng();
         // Probably easier/cheaper just to choose two random numbers
         // here in the range of node IDs and reject if they're equal
         // but... whatever for now
         let pair: Vec<&usize> = self.graph.node_ids.choose_multiple(&mut rng, 2).collect();
 
-        let mut swap_candidate: usize = usize::MAX;
+        // This would be a whole lot easier if you could get a diff
+        // between sets without taking ownership...
+        let mut swap_1 = usize::MIN;
+        let mut swap_2 = usize::MIN;
         for &node_id in self.graph.nodes[*pair[0]].connections.iter() {
             if !self.graph.nodes[*pair[1]].connections.contains(&node_id) {
-                swap_candidate = node_id;
+                swap_1 = node_id;
                 break;
             }
         }
-        self.graph.nodes[*pair[0]].remove_connection(swap_candidate);
-        self.graph.nodes[*pair[1]].add_connection(swap_candidate);
+
+        for &node_id in self.graph.nodes[*pair[1]].connections.iter() {
+            if !self.graph.nodes[*pair[0]].connections.contains(&node_id) {
+                swap_2 = node_id;
+                break;
+            }
+        }
+        // Check whether this breaks an existing desired structure.
+        // If it does, no touchy (for now, though I don't know
+        // whether this procludes a better solution)
+        if self.neighbour_count_fits(swap_1, swap_2) {
+            return None;
+        }
+
+        Some((*pair[0], *pair[1], swap_1, swap_2))
+    }
+
+    fn run(&mut self) -> () {
+        // Get the costs of the initial solution
+        self.soln_cost = self.get_cost();
+        self.best_ever_cost = self.get_cost();
+
+        for x in 0..self.iterations {
+            if let Some(swaps) = self.get_swaps() {
+                self.graph.nodes[swaps.0].remove_connection(swaps.2);
+                self.graph.nodes[swaps.1].remove_connection(swaps.3);
+                self.graph.nodes[swaps.0].add_connection(swaps.3);
+                self.graph.nodes[swaps.1].add_connection(swaps.2);
+            }
+            let new_cost = self.get_cost();
+            if new_cost < self.soln_cost {
+                if new_cost < self.best_ever_cost {
+                    self.best_ever_cost = new_cost;
+                    self.best_ever_solution.nodes = self.graph.nodes.clone();
+                }
+            }
+        }
     }
 }
 
@@ -202,6 +242,7 @@ fn main() {
     println!("{:?}", graph.nodes);
 
     let mut solver = Solver::new(&mut graph, 10.0, 0.9999, 1000);
+    solver.run();
 
     println!("{:?}", solver.get_cost());
 }
