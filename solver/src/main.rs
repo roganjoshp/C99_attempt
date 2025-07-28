@@ -115,26 +115,28 @@ impl Graph {
 
 struct Solver<'a> {
     graph: &'a mut Graph,
-    base_cost: usize,
-    soln_cost: usize,
-    best_ever_cost: usize,
+    base_cost: f64,
+    soln_cost: f64,
+    best_ever_cost: f64,
     best_ever_solution: Graph,
     temperature: f64,
     alpha: f64,
     iterations: u64,
+    latest_swap: (usize, usize, usize, usize),
 }
 
 impl<'a> Solver<'a> {
     fn new(graph: &'a mut Graph, temperature: f64, alpha: f64, iterations: u64) -> Self {
         Solver {
             graph: graph,
-            base_cost: 10000,
-            soln_cost: 10000,
-            best_ever_cost: 10000,
+            base_cost: 10000.,
+            soln_cost: 10000.,
+            best_ever_cost: 10000.,
             best_ever_solution: Graph::default(),
             temperature: temperature,
             alpha: alpha,
             iterations: iterations,
+            latest_swap: Default::default(),
         }
     }
 
@@ -158,7 +160,7 @@ impl<'a> Solver<'a> {
         count == 2 && !self.graph.nodes[i].connections.contains(&j)
     }
 
-    fn get_cost(&mut self) -> usize {
+    fn get_cost(&mut self) -> f64 {
         // This is basically backwards from what I'm used to but
         // here I want to subtract from a static base cost for every
         // time I find a structure that I want in the graph.
@@ -171,8 +173,8 @@ impl<'a> Solver<'a> {
                 .par_iter()
                 .map(|pair| self.neighbour_count_fits(pair[0], pair[1]))
                 .filter(|&s| s == true)
-                .count()
-                * 10
+                .count() as f64
+                * 10.0
     }
 
     fn get_swaps(&mut self) -> Option<(usize, usize, usize, usize)> {
@@ -202,33 +204,57 @@ impl<'a> Solver<'a> {
         // Check whether this breaks an existing desired structure.
         // If it does, no touchy (for now, though I don't know
         // whether this procludes a better solution)
-        if self.neighbour_count_fits(swap_1, swap_2) {
-            return None;
-        }
+        // if self.neighbour_count_fits(swap_1, swap_2) {
+        //     return None;
+        // }
 
         Some((*pair[0], *pair[1], swap_1, swap_2))
     }
 
     fn run(&mut self) -> () {
+        let mut rng = rand::rng();
+
         // Get the costs of the initial solution
         self.soln_cost = self.get_cost();
         self.best_ever_cost = self.get_cost();
 
         for x in 0..self.iterations {
             if let Some(swaps) = self.get_swaps() {
+                self.latest_swap = swaps;
                 self.graph.nodes[swaps.0].remove_connection(swaps.2);
                 self.graph.nodes[swaps.1].remove_connection(swaps.3);
                 self.graph.nodes[swaps.0].add_connection(swaps.3);
                 self.graph.nodes[swaps.1].add_connection(swaps.2);
+            } else {
+                continue;
             }
             let new_cost = self.get_cost();
             if new_cost < self.soln_cost {
+                // Accept unconditionally
+                self.soln_cost = new_cost;
                 if new_cost < self.best_ever_cost {
                     self.best_ever_cost = new_cost;
                     self.best_ever_solution.nodes = self.graph.nodes.clone();
                 }
+            } else {
+                let calc =
+                    (((self.soln_cost - new_cost) / self.soln_cost) * 100. / self.temperature);
+                let check = f64::exp(calc);
+                // println!("{:?}", check);
+                let dice_roll: f64 = rng.random();
+                if dice_roll < check && check != 1. {
+                    self.soln_cost = new_cost;
+                } else {
+                    // We need to reverse the change
+                    self.graph.nodes[self.latest_swap.0].remove_connection(self.latest_swap.3);
+                    self.graph.nodes[self.latest_swap.1].remove_connection(self.latest_swap.2);
+                    self.graph.nodes[self.latest_swap.0].add_connection(self.latest_swap.2);
+                    self.graph.nodes[self.latest_swap.1].add_connection(self.latest_swap.3);
+                }
             }
+            self.temperature *= self.alpha;
         }
+        println!("{:?}", self.best_ever_cost);
     }
 }
 
@@ -241,8 +267,6 @@ fn main() {
     graph.initialise_soln();
     println!("{:?}", graph.nodes);
 
-    let mut solver = Solver::new(&mut graph, 10.0, 0.9999, 1000);
+    let mut solver = Solver::new(&mut graph, 0.4, 0.9995, 10000);
     solver.run();
-
-    println!("{:?}", solver.get_cost());
 }
