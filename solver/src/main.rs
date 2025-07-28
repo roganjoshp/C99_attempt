@@ -178,17 +178,17 @@ impl<'a> Solver<'a> {
         // Probably easier/cheaper just to choose two random numbers
         // here in the range of node IDs and reject if they're equal
         // but... whatever for now
-        let pair: Vec<usize> = self
-            .graph
-            .node_ids
-            .choose_multiple(&mut rng, 2)
-            .cloned()
-            .collect();
-        let mut swap_candidates: Vec<&usize> = self.graph.nodes[pair[0]]
-            .connections
-            .difference(&self.graph.nodes[pair[1]].connections)
-            .collect();
-        let node = swap_candidates.choose(&mut rng).unwrap();
+        let pair: Vec<&usize> = self.graph.node_ids.choose_multiple(&mut rng, 2).collect();
+
+        let mut swap_candidate: usize = usize::MAX;
+        for &node_id in self.graph.nodes[*pair[0]].connections.iter() {
+            if !self.graph.nodes[*pair[1]].connections.contains(&node_id) {
+                swap_candidate = node_id;
+                break;
+            }
+        }
+        self.graph.nodes[*pair[0]].remove_connection(swap_candidate);
+        self.graph.nodes[*pair[1]].add_connection(swap_candidate);
     }
 }
 
