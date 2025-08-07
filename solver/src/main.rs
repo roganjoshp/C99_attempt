@@ -154,10 +154,24 @@ impl<'a> Solver<'a> {
             // We need to be sure here that they are actually connected
             // themselves to create the triangle
             return self.graph.nodes[i].connections.contains(&j);
+        } else if count == 2 {
+            if !self.graph.nodes[i].connections.contains(&j) {
+                // The connections make a square at the diagonals by sharing exactly two
+                // connections, but aren't directly connected themselves
+                // X ----- O
+                // |       |
+                // |       |
+                // O-------X
+                return true;
+        } else if count == 0 {
+            // Now the heavy lifting. We need to see whether they are adjacent
+            // and their own connections form the square
+            // O ----- O
+            // |       |
+            // |       |
+            // X-------X
         }
-        // The only way to make a square is if they share two connections
-        // and aren't connected
-        count == 2 && !self.graph.nodes[i].connections.contains(&j)
+            false
     }
 
     fn get_cost(&mut self) -> f64 {
@@ -237,8 +251,7 @@ impl<'a> Solver<'a> {
                     self.best_ever_solution.nodes = self.graph.nodes.clone();
                 }
             } else {
-                let calc =
-                    (((self.soln_cost - new_cost) / self.soln_cost) * 100. / self.temperature);
+                let calc = ((self.soln_cost - new_cost) / self.soln_cost) * 100. / self.temperature;
                 let check = f64::exp(calc);
                 // println!("{:?}", check);
                 let dice_roll: f64 = rng.random();
@@ -266,6 +279,7 @@ fn main() {
 
     graph.initialise_soln();
     println!("{:?}", graph.nodes);
+    println!("{:?}", graph.node_pairs);
 
     let mut solver = Solver::new(&mut graph, 0.4, 0.9995, 10000);
     solver.run();
