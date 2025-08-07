@@ -11,15 +11,18 @@ EDGE_COUNT = 4
 class Node:
     def __init__(self, id):
         self.id = id
-        self.connections: list[Node] = []
+        self.connections: set[Node] = set()
     
     def add_connection(self, other: "Node"):
-        self.connections.append(other.id)
+        self.connections.add(other.id)
     
     def remove_connection(self, other: "Node"):
-        self.connections = [
+        self.connections = {
             node for node in self.connections if node != other.id
-        ]
+        }
+    
+    def get_connectedness(self, other: "Node"):
+        return len(self.connections.intersection(other.connections))
 
 
 class Graph:
@@ -43,8 +46,14 @@ class Graph:
             if len(self.graph[k].connections) < EDGE_COUNT
         ]
         candidates.sort(key=lambda x: x[1])
-        print(candidates)
+        # print(candidates)
         return candidates
+
+    def __repr__(self):
+        conns = "\n".join(
+            [f"{k} : {v.connections}" for k, v in self.graph.items()]
+        )
+        return conns
     
 
 def generate_graph_greedy():
@@ -60,10 +69,25 @@ def generate_graph_greedy():
     for node in node_list:
         edges = 0
         while edges < EDGE_COUNT:
-            pair_node = g.rank_nodes()[0][1]
-            g.graph[node].add_connection(g.graph[pair_node])
-            g.graph[pair_node].add_connection(g.graph[node])
-            edges += 1
+            node_index = 0
+
+            pair_node = g.rank_nodes()[node_index][0]
+            if node == pair_node:
+                continue
+
+            try:
+                if (g.graph[node].get_connectedness(g.graph[pair_node]) 
+                    < EDGE_COUNT):
+                    g.graph[node].add_connection(g.graph[pair_node])
+                    g.graph[pair_node].add_connection(g.graph[node])
+                    edges += 1
+                else:
+                    node_index += 1
+            except IndexError:
+                g.graph[node].add_connection(g.graph[pair_node])
+                g.graph[pair_node].add_connection(g.graph[node])
+                edges += 1
+            
 
 
 if __name__ == "__main__":
