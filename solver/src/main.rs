@@ -163,6 +163,7 @@ impl<'a> Solver<'a> {
                 // |       |
                 // O-------X
                 return true;
+            }
         } else if count == 0 {
             // Now the heavy lifting. We need to see whether they are adjacent
             // and their own connections form the square
@@ -170,8 +171,9 @@ impl<'a> Solver<'a> {
             // |       |
             // |       |
             // X-------X
+            return false;
         }
-            false
+        false
     }
 
     fn get_cost(&mut self) -> f64 {
