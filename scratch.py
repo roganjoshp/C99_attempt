@@ -56,6 +56,19 @@ class Graph:
         return conns
     
 
+class Solver:
+    def __init__(self, graph: Graph, temp: float, alpha: float, iterations: int):
+        self.graph = graph.graph
+        self.temp = temp
+        self.a = alpha
+        self.iterations = iterations
+    
+
+'''
+def generate_graph():
+    pass
+    
+
 def generate_graph_greedy():
     all_nodes = [Node(i) for i in range(NODE_COUNT)]
     g = Graph()
@@ -87,8 +100,7 @@ def generate_graph_greedy():
                 g.graph[node].add_connection(g.graph[pair_node])
                 g.graph[pair_node].add_connection(g.graph[node])
                 edges += 1
-            
-
+'''  
 
 if __name__ == "__main__":
     generate_graph_greedy()
