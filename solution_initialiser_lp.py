@@ -1,11 +1,18 @@
 from pulp import LpProblem, LpVariable, lpSum, value
 import pulp
 
+import numpy as np
+
+
 NUM_NODES = 9
 NUM_EDGES = 4
 
 
-def initialise_graph(nodes: int, edges: int):
+def initialise_graph(nodes: int, edges: int) -> np.array:
+    """
+    Use linear programming to generate a template graph with required node:edge
+    ratio
+    """
     problem = LpProblem("initialisation")
     rows = cols = range(1, nodes)
     choices = LpVariable.dicts("choice", (rows, cols), cat="Binary")
@@ -27,11 +34,10 @@ def initialise_graph(nodes: int, edges: int):
     for r in rows:
         row_vals = []
         for c in cols:
-            print(int(value(choices[r][c])), end=" | ")
             row_vals.append(int(value(choices[r][c])))
-        print()
         rebuilt.append(row_vals)
-    print(rebuilt)
+    return np.array(rebuilt)
 
 
-initialise_graph(NUM_NODES, NUM_EDGES)
+graph = initialise_graph(NUM_NODES, NUM_EDGES)
+print(graph)
