@@ -2,7 +2,6 @@
 # don't understand why my current approach is (semi-)broken and can deadlock
 # itself.
 
-import random
 
 NODE_COUNT = 9
 EDGE_COUNT = 4
@@ -12,15 +11,15 @@ class Node:
     def __init__(self, id):
         self.id = id
         self.connections: set[Node] = set()
-    
+
     def add_connection(self, other: "Node"):
         self.connections.add(other.id)
-    
+
     def remove_connection(self, other: "Node"):
         self.connections = {
             node for node in self.connections if node != other.id
         }
-    
+
     def get_connectedness(self, other: "Node"):
         return len(self.connections.intersection(other.connections))
 
@@ -28,10 +27,10 @@ class Node:
 class Graph:
     def __init__(self):
         self.graph = {}
-        
+
     def add_node(self, node: Node):
         self.graph[node.id] = node
-        
+
     def remove_node(self, node_id):
         edges = self.graph[node_id]
         for edge in edges:
@@ -39,10 +38,11 @@ class Graph:
         del self.graph[node_id]
 
     def rank_nodes(self):
-        # Clunky but just easier to debug visually and it's only used in 
+        # Clunky but just easier to debug visually and it's only used in
         # initialisation
         candidates = [
-            (k, len(v.connections)) for k, v in self.graph.items() 
+            (k, len(v.connections))
+            for k, v in self.graph.items()
             if len(self.graph[k].connections) < EDGE_COUNT
         ]
         candidates.sort(key=lambda x: x[1])
@@ -54,17 +54,19 @@ class Graph:
             [f"{k} : {v.connections}" for k, v in self.graph.items()]
         )
         return conns
-    
+
 
 class Solver:
-    def __init__(self, graph: Graph, temp: float, alpha: float, iterations: int):
+    def __init__(
+        self, graph: Graph, temp: float, alpha: float, iterations: int
+    ):
         self.graph = graph.graph
         self.temp = temp
         self.a = alpha
         self.iterations = iterations
-    
 
-'''
+
+"""
 def generate_graph():
     pass
     
@@ -100,12 +102,7 @@ def generate_graph_greedy():
                 g.graph[node].add_connection(g.graph[pair_node])
                 g.graph[pair_node].add_connection(g.graph[node])
                 edges += 1
-'''  
+"""
 
 if __name__ == "__main__":
     generate_graph_greedy()
-        
-    
-
-
-
