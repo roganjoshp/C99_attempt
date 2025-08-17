@@ -105,4 +105,4 @@ def generate_graph_greedy():
 """
 
 if __name__ == "__main__":
-    generate_graph_greedy()
+    pass  # generate_graph_greedy()

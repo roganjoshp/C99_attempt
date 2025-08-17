@@ -1,5 +1,5 @@
+import random
 from itertools import permutations
-from typing import Tuple
 
 import numpy as np
 import pulp
@@ -60,8 +60,8 @@ def initialise_graph(nodes: int, edges: int) -> np.array:
 
 def assert_compliance(graph: np.ndarray):
     """Assert that the solution is a strongly regular graph that meets criteria
-    
-    That is, all nodes must have the requisite number of connections in the 
+
+    That is, all nodes must have the requisite number of connections in the
     graph and no node should be connected to itself
 
     Parameters
@@ -81,13 +81,13 @@ def assert_compliance(graph: np.ndarray):
         raise ValueError("Graph is not compliant")
 
 
-def get_score(graph: np.ndarray) -> Tuple[int, int]:
+def get_score(graph: np.ndarray) -> tuple[int, int]:
     """Count the number of valid structures in the graph.
-    
-    The criteria for solving the problem stipulates "every pair of adjacent 
-    vertices should have 1 common neighbor, and every pair of non-adjacent 
+
+    The criteria for solving the problem stipulates "every pair of adjacent
+    vertices should have 1 common neighbor, and every pair of non-adjacent
     vertices should have 2 common neighbors"
-    
+
     This function countes the number of times that criteria is met
 
     Parameters
@@ -106,7 +106,74 @@ def get_score(graph: np.ndarray) -> Tuple[int, int]:
     return int(triangles), int(squares)
 
 
+def solver(graph, iterations=10000):
+    # Pre-compute nodes and acceptance criteria. Cheaper than calling random()
+    # in a loop, even if we don't end up consuming them all
+    node_selection = np.random.randint(0, NUM_NODES, size=iterations)
+    pair_node_idx = np.random.randint(0, NUM_EDGES, size=iterations)
+    acceptance = np.random.random(size=iterations)
+
+    t, s = get_score(graph)
+    current_score = 1000 - (t + s)
+    best_ever_score = current_score
+    solution = graph.copy()
+    best_ever_solution = graph.copy()
+
+    # Bind locally
+    flatnonzero = np.flatnonzero
+
+    for x in range(iterations):
+        node = node_selection[x]
+        pair_node = pair_node_idx[x]
+        if node == pair_node:
+            continue
+        node_cons = set(flatnonzero(solution[node]))
+        pair_node_cons = set(flatnonzero(solution[pair_node]))
+
+        diff_f = pair_node_cons - node_cons
+        diff_r = node_cons - pair_node_cons
+
+        if node in diff_f:
+            diff_f.remove(node)
+        if pair_node in diff_r:
+            diff_r.remove(pair_node)
+
+        if not diff_f or not diff_r:
+            continue
+
+        f_node = random.choice(list(diff_f))
+        r_node = random.choice(list(diff_r))
+
+        # Remove the connections first
+        solution[node][r_node] = 0
+        solution[pair_node][f_node] = 0
+
+        # Do the swap
+        solution[node][f_node] = 1
+        solution[pair_node][r_node] = 1
+        if x % 100 == 0:
+            assert_compliance(solution)
+
+        t, s = get_score(solution)
+        cost = 1000 - (t + s)
+
+        if cost < current_score:
+            if cost < best_ever_score:
+                best_ever_score = cost
+                best_ever_solution = solution.copy()
+                print(x, best_ever_score)
+        else:
+            # Reverse
+            solution[node][f_node] = 0
+            solution[pair_node][r_node] = 0
+
+            # Do the swap
+            solution[node][r_node] = 1
+            solution[pair_node][f_node] = 1
+
+
 graph = initialise_graph(NUM_NODES, NUM_EDGES)
 assert_compliance(graph)
 print(graph)
 score = get_score(graph)
+solver(graph, iterations=10000)
