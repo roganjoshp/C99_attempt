@@ -1,10 +1,8 @@
 from pulp import LpProblem, LpVariable, lpSum, value
-from itertools import combinations, permutations
+from itertools import permutations
 import pulp
 
 import numpy as np
-
-np.set_printoptions(threshold=100000)
 
 
 NUM_NODES = 9
@@ -26,7 +24,16 @@ def initialise_graph(nodes: int, edges: int) -> np.array:
 
     for c in cols:
         problem += lpSum([choices[r][c] for r in rows]) == edges
- 
+
+    # Try and force the graph to be undirected. Every reciprocal pairing of 
+    # nodes should cancel out. This should cover the case of 0-0 and 1-1 but
+    # not allow for 1-0 or 0-1
+    perms = permutations(range(NUM_NODES), 2)
+    for perm in perms:
+        problem += lpSum(
+            choices[perm[0]][perm[1]] - choices[perm[1]][perm[0]]
+        ) == 0
+
     if "COIN_CMD" in pulp.apis.listSolvers(onlyAvailable=True):
         # Needed for Mac users because the base binary is incompatible
         # see https://stackoverflow.com/a/79734034/4799172 for setup on Mac
@@ -50,5 +57,3 @@ def initialise_graph(nodes: int, edges: int) -> np.array:
 
 graph = initialise_graph(NUM_NODES, NUM_EDGES)
 print(graph)
-
-# print(list(permutations(range(NUM_NODES), 2)))
