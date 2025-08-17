@@ -2,11 +2,12 @@ import random
 from itertools import permutations
 
 import numpy as np
+import math
 import pulp
 from pulp import LpProblem, LpVariable, lpSum, value
 
-NUM_NODES = 9
-NUM_EDGES = 4
+NUM_NODES = 99
+NUM_EDGES = 14
 
 
 def initialise_graph(nodes: int, edges: int) -> np.array:
@@ -81,14 +82,14 @@ def assert_compliance(graph: np.ndarray):
         raise ValueError("Graph is not compliant")
 
 
-def get_score(graph: np.ndarray) -> tuple[int, int]:
-    """Count the number of valid structures in the graph.
+def get_score(graph: np.ndarray) -> int:
+    """Count the number of invalid nodes in the graph.
 
     The criteria for solving the problem stipulates "every pair of adjacent
     vertices should have 1 common neighbor, and every pair of non-adjacent
     vertices should have 2 common neighbors"
 
-    This function countes the number of times that criteria is met
+    This function countes the number of times that criteria is not met
 
     Parameters
     ----------
@@ -97,30 +98,35 @@ def get_score(graph: np.ndarray) -> tuple[int, int]:
 
     Returns
     -------
-    Tuple[int, int]
-        A count of the number of [triangles, squares] in the solution structure
+    int
+        A count of the number of nodes neither in a triangle or a square
     """
     base = graph @ graph
-    triangles = np.triu(base == 1, 0).sum()
-    squares = np.triu(((base == 2) - graph).clip(0), 0).sum()
-    return int(triangles), int(squares)
+    # Find nodes that are neither part of a triangle or a square
+    defects = np.triu(
+        (((graph * 2) - (base == 1) - (((base == 2) - graph).clip(0))) == 2), 0
+    ).sum()
+    return defects
 
 
-def solver(graph, iterations=10000):
+def solver(graph, iterations=10000, temp=1, alpha=0.999):
     # Pre-compute nodes and acceptance criteria. Cheaper than calling random()
     # in a loop, even if we don't end up consuming them all
     node_selection = np.random.randint(0, NUM_NODES, size=iterations)
     pair_node_idx = np.random.randint(0, NUM_EDGES, size=iterations)
     acceptance = np.random.random(size=iterations)
 
-    t, s = get_score(graph)
-    current_score = 1000 - (t + s)
+    current_score = get_score(graph)
     best_ever_score = current_score
     solution = graph.copy()
     best_ever_solution = graph.copy()
 
     # Bind locally
     flatnonzero = np.flatnonzero
+    
+    # Track convergence
+    soln_x = []
+    soln_y = []
 
     for x in range(iterations):
         node = node_selection[x]
@@ -154,14 +160,21 @@ def solver(graph, iterations=10000):
         if x % 100 == 0:
             assert_compliance(solution)
 
-        t, s = get_score(solution)
-        cost = 1000 - (t + s)
+        cost = get_score(solution)
 
         if cost < current_score:
+            # accept unconditionally
             if cost < best_ever_score:
                 best_ever_score = cost
                 best_ever_solution = solution.copy()
-                print(x, best_ever_score)
+            current_score = cost
+            soln_x.append(x)
+            soln_y.append(int(current_score))
+        elif cost >= current_score:
+            if acceptance[x] < math.exp((current_score - cost) / temp):
+                current_score = cost
+                soln_x.append(x)
+                soln_y.append(int(current_score))
         else:
             # Reverse
             solution[node][f_node] = 0
@@ -170,10 +183,13 @@ def solver(graph, iterations=10000):
             # Do the swap
             solution[node][r_node] = 1
             solution[pair_node][f_node] = 1
+    tracking = zip(soln_x, soln_y)
+    for row in tracking:
+        print(row)
 
 
 graph = initialise_graph(NUM_NODES, NUM_EDGES)
 assert_compliance(graph)
-print(graph)
+# print(graph)
 score = get_score(graph)
 solver(graph, iterations=10000)
