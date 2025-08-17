@@ -1,4 +1,5 @@
 from itertools import permutations
+from typing import Tuple
 
 import numpy as np
 import pulp
@@ -58,6 +59,21 @@ def initialise_graph(nodes: int, edges: int) -> np.array:
 
 
 def assert_compliance(graph: np.ndarray):
+    """Assert that the solution is a strongly regular graph that meets criteria
+    
+    That is, all nodes must have the requisite number of connections in the 
+    graph and no node should be connected to itself
+
+    Parameters
+    ----------
+    graph : np.ndarray
+        A 2D array representing all edges between nodes
+
+    Raises
+    -------
+    ValueError
+        The graph does not comply with the restrictions
+    """
     rows = (graph.sum(axis=0) != NUM_EDGES).sum()
     cols = (graph.sum(axis=1) != NUM_EDGES).sum()
     diag = graph.diagonal().sum()
@@ -65,7 +81,25 @@ def assert_compliance(graph: np.ndarray):
         raise ValueError("Graph is not compliant")
 
 
-def get_score(graph: np.ndarray):
+def get_score(graph: np.ndarray) -> Tuple[int, int]:
+    """Count the number of valid structures in the graph.
+    
+    The criteria for solving the problem stipulates "every pair of adjacent 
+    vertices should have 1 common neighbor, and every pair of non-adjacent 
+    vertices should have 2 common neighbors"
+    
+    This function countes the number of times that criteria is met
+
+    Parameters
+    ----------
+    graph : np.ndarray
+        A 2D array representing all edges between nodes
+
+    Returns
+    -------
+    Tuple[int, int]
+        A count of the number of [triangles, squares] in the solution structure
+    """
     base = graph @ graph
     triangles = np.triu(base == 1, 0).sum()
     squares = np.triu(((base == 2) - graph).clip(0), 0).sum()
@@ -76,4 +110,3 @@ graph = initialise_graph(NUM_NODES, NUM_EDGES)
 assert_compliance(graph)
 print(graph)
 score = get_score(graph)
-print(score)
